@@ -1,4 +1,4 @@
-[![CI](https://github.com/anune/my-ml/actions/workflows/ci.yml/badge.svg)](https://github.com/anune/my-ml/actions/workflows/ci.yml)
+[![CI](https://github.com/Alxjq-afk/my-ml/actions/workflows/ci.yml/badge.svg)](https://github.com/Alxjq-afk/my-ml/actions/workflows/ci.yml)
 
 Proyecto: Entrenamiento base de IA
 
