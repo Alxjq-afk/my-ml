@@ -3,11 +3,14 @@
 Intenta cargar `llama_cpp` si está disponible y `MODEL_PATH` en `.env`.
 Si no hay modelo local, intenta usar RemoteLLM (Hugging Face API) si está configurado.
 Si tampoco, devuelve respuestas de fallback instructivas.
+
+Incluye training data context para respuestas más coherentes.
 """
 from typing import Optional
 import os
 import json
 import requests
+from assistant.training_data import get_contextual_response
 
 
 class RemoteLLM:
@@ -135,6 +138,12 @@ class LocalLLM:
 
         # Fallback behaviour: respuestas inteligentes simuladas
         low = prompt.lower()
+        
+        # Primero, intentar buscar en training data contextual
+        training_response = get_contextual_response(low)
+        if training_response:
+            return training_response
+        
         return self._fallback_response(prompt)
     
     def _fallback_response(self, prompt: str) -> str:
