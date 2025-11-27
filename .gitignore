@@ -1,0 +1,16 @@
+# Environment
+.venv/
+.env
+
+# Assistant data and checkpoints
+assistant_data/
+checkpoints*/
+
+# Python
+__pycache__/
+*.pyc
+
+# Model files (do not commit)
+*.bin
+*.ggml
+*.gguf
