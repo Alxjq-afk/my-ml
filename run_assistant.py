@@ -4,6 +4,7 @@ import argparse
 import sys
 import threading
 from assistant import config, llm, memory, executor, voice
+from assistant.interpreter import CommandInterpreter
 
 
 def main():
@@ -14,12 +15,14 @@ def main():
     config.load_config()
     model_path = config.get("MODEL_PATH")
     L = llm.LocalLLM(model_path=model_path)
+    CI = CommandInterpreter()  # Intérprete de comandos naturales
 
     print("JARVIS (MVP) - CLI (escribe 'exit' para salir)")
     if model_path:
         print(f"Intentando usar modelo local: {model_path}")
     else:
         print("No hay modelo local configurado. Usa un modelo o sigue con el fallback.")
+    print("💡 Tip: Puedes escribir comandos naturales, ej: 'abre notepad', 'sube volumen', etc.")
 
     while True:
         try:
@@ -34,9 +37,12 @@ def main():
             print("Adiós.")
             break
 
-        # comandos especiales
-        if txt.startswith("!exec "):
-            cmd = txt[len("!exec "):]
+        # Intentar interpretar como comando natural
+        cmd_result = CI.interpret(txt)
+
+        # Si es un comando reconocido, ejecutarlo
+        if cmd_result["type"] == "exec":
+            cmd = cmd_result["command"]
             if args.confirm_actions:
                 c = input(f"Confirmar ejecutar: {cmd} (y/n): ")
                 if c.lower() != "y":
@@ -47,37 +53,34 @@ def main():
             memory.add_memory("assistant", f"Ejecutado: {cmd}")
             continue
 
-        if txt.startswith("!open "):
-            path = txt[len("!open "):]
+        if cmd_result["type"] == "open":
+            path = cmd_result["path"]
+            if args.confirm_actions:
+                c = input(f"Confirmar abrir: {path} (y/n): ")
+                if c.lower() != "y":
+                    print("Cancelado")
+                    continue
             ok = executor.open_path(path)
             print("Abierto" if ok else "No se pudo abrir")
             memory.add_memory("assistant", f"Abierto: {path}")
             continue
 
-        if txt.startswith("!vol "):
-            parts = txt.split()
-            if len(parts) >= 2:
-                action = parts[1]
-                if action in ("up", "down") and len(parts) == 3:
-                    try:
-                        val = int(parts[2])
-                        executor.set_volume(val)
-                        print(f"Volumen ajustado a {val}")
-                    except Exception:
-                        print("Valor inválido")
-                elif action == "set" and len(parts) == 3:
-                    try:
-                        val = int(parts[2])
-                        executor.set_volume(val)
-                        print(f"Volumen fijado a {val}")
-                    except Exception:
-                        print("Valor inválido")
-                else:
-                    print("Uso: !vol set <0-100>")
+        if cmd_result["type"] == "volume":
+            action = cmd_result["action"]
+            value = cmd_result["value"]
+            if action == "set":
+                executor.set_volume(value)
+                print(f"Volumen fijado a {value}")
+            elif action == "up":
+                executor.set_volume(value + 10)  # Aumentar 10
+                print(f"Volumen aumentado")
+            elif action == "down":
+                executor.set_volume(max(0, value - 10))  # Disminuir 10
+                print(f"Volumen disminuido")
+            memory.add_memory("assistant", f"Volumen ajustado a {value}")
             continue
 
-        if txt.startswith("!sendmail"):
-            # flujo simple: pedimos datos mínimos
+        if cmd_result["type"] == "sendmail":
             smtp = config.get("SMTP_HOST")
             port = int(config.get("SMTP_PORT", 587))
             user = config.get("SMTP_USER")
@@ -90,7 +93,7 @@ def main():
             memory.add_memory("assistant", f"Enviado email a {to} asunto {subject}")
             continue
 
-        # normal: enviar al LLM
+        # Si no fue comando, es conversación normal
         prompt = f"Eres JARVIS en español. Responde de forma cortés y proactiva. Usuario: {txt}"
         resp = L.generate(prompt)
         print("JARVIS>", resp)
