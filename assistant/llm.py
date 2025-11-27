@@ -54,6 +54,11 @@ class RemoteLLM:
 class LocalLLM:
     """Interfaz unificada: intenta usar un backend local (`llama_cpp`) y si no está
     disponible intenta un backend remoto configurado, o devuelve respuestas de fallback.
+    
+    Soporta:
+    - Backend local: llama-cpp-python con Mistral 7B GGUF (~4GB)
+    - Backend remoto: Hugging Face Inference API
+    - Fallback: respuestas inteligentes contextuales
     """
 
     def __init__(self, model_path: Optional[str] = None):
@@ -67,31 +72,53 @@ class LocalLLM:
             from llama_cpp import Llama
 
             if self.model_path and os.path.exists(self.model_path):
-                self.llm = Llama(model_path=self.model_path)
+                print(f"📦 Cargando modelo Mistral 7B desde {self.model_path}")
+                self.llm = Llama(
+                    model_path=self.model_path,
+                    n_gpu_layers=0,  # CPU only (cambiar a GPU si tienes CUDA)
+                    n_ctx=2048,      # Contexto
+                    verbose=False
+                )
                 self.available = True
                 self.backend = "llama_cpp"
+                print("✓ Modelo Mistral 7B cargado exitosamente")
             else:
+                print(f"⚠ Modelo no encontrado: {self.model_path}")
                 self.llm = None
-        except Exception:
+        except ImportError:
+            print("⚠ llama-cpp-python no disponible. Instalalo con: pip install llama-cpp-python")
+        except Exception as e:
+            print(f"⚠ Error cargando modelo local: {e}")
             self.llm = None
 
         # Si no hay backend local, intentar remoto si está configurado
         if not self.available:
             provider = os.getenv("REMOTE_PROVIDER")
             if provider:
+                print("🌐 Usando backend remoto (Hugging Face)")
                 self.llm = RemoteLLM()
                 self.backend = "remote"
                 self.available = True
 
     def generate(self, prompt: str, max_tokens: int = 256) -> str:
-        # Local llama_cpp
+        # Local llama_cpp (Mistral 7B)
         if self.backend == "llama_cpp" and self.llm is not None:
             try:
-                r = self.llm(prompt, max_tokens=max_tokens)
-                if isinstance(r, dict) and "choices" in r:
-                    return r["choices"][0]["text"].strip()
-                return str(r)
+                # Usar el modelo Mistral 7B localmente
+                response = self.llm(
+                    prompt,
+                    max_tokens=min(max_tokens, 512),
+                    top_p=0.95,
+                    top_k=40,
+                    temperature=0.7,
+                    repeat_penalty=1.1
+                )
+                if isinstance(response, dict) and "choices" in response:
+                    text = response["choices"][0]["text"].strip()
+                    return text if text else self._fallback_response(prompt)
+                return str(response).strip()
             except Exception as e:
+                print(f"❌ Error en Mistral local: {e}")
                 # Si falla, usa fallback
                 pass
 
@@ -107,6 +134,11 @@ class LocalLLM:
                 pass
 
         # Fallback behaviour: respuestas inteligentes simuladas
+        low = prompt.lower()
+        return self._fallback_response(prompt)
+    
+    def _fallback_response(self, prompt: str) -> str:
+        """Generar respuesta de fallback basada en palabras clave."""
         low = prompt.lower()
         
         # Respuestas específicas por tema

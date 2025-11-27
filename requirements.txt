@@ -1,21 +1,36 @@
 numpy
 scikit-learn
-# joblib se usa para serializar el modelo sklearn (fallback)
 joblib
-# Para logging en TensorBoard (opcional)
 tensorboard
 pytest
-# Optional: uncomment to include PyTorch (instalar según tu plataforma):
-# torch
+
+# Machine Learning
+# torch (optional - install from https://pytorch.org/)
 # torchvision
 
-# Dependencias opcionales para el asistente local (TTS/STT/vol control/llm)
+# Assistant Core
 python-dotenv
 pyttsx3
-# VOSK + sounddevice para reconocimiento de voz offline (descargar modelo VOSK por separado)
-vosk
+requests
+
+# Voice (STT/Wake Word)
+openai-whisper
+pyaudio
+scipy
+librosa
+SpeechRecognition
+pocketsphinx
 sounddevice
-# pycaw para control de volumen en Windows
+
+# System Integration
 pycaw
-# Opcional: llama-cpp-python para cargar modelos ggml/gguf localmente
-llama-cpp-python
+
+# Local LLM (optional - requires Visual Studio Build Tools on Windows)
+# llama-cpp-python
+
+# System Info
+psutil
+
+# Optional APIs
+# openweather
+# newsapi

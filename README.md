@@ -1,8 +1,58 @@
 [![CI](https://github.com/Alxjq-afk/my-ml/actions/workflows/ci.yml/badge.svg)](https://github.com/Alxjq-afk/my-ml/actions/workflows/ci.yml)
 
-Proyecto: Entrenamiento base de IA
+# ML + JARVIS Assistant
 
-Contenido:
+Proyecto integrado con dos componentes principales:
+
+## 📊 1. Machine Learning (train.py / predict.py)
+
+Entrenamiento e inferencia de modelos de IA.
+
+## 🤖 2. JARVIS Assistant (Advanced Voice v2.0)
+
+Asistente de voz tipo Cortana/Alexa con:
+- **Escucha continua** con detección de palabra clave ("Hey JARVIS")
+- **Speech-to-Text** con Whisper (OpenAI)
+- **Modelos de lenguaje**: Mistral 7B local + Hugging Face remoto
+- **Comandos naturales**: "abre notepad", "sube volumen", etc.
+- **APIs integradas**: hora, clima, búsqueda web, info del sistema
+- **Text-to-Speech**: respuestas de voz
+
+**Documentación completa**: Ver [`JARVIS_ADVANCED.md`](JARVIS_ADVANCED.md)
+
+---
+
+## 🚀 Quick Start
+
+### JARVIS (Voice Assistant)
+```bash
+# Modo texto (CLI)
+python run_jarvis_voice.py --mode cli
+
+# Modo voz (escucha continua)
+python run_jarvis_voice.py --mode voice
+
+# Modo híbrido (auto-detecta)
+python run_jarvis_voice.py
+```
+
+**Ejemplo de comandos**:
+```
+"abre notepad"          → Abre Notepad
+"ejecuta dir C:\"       → Ejecuta comando
+"sube volumen a 70"     → Ajusta volumen
+"¿Qué hora es?"         → Pregunta a JARVIS
+```
+
+### ML Training
+```bash
+python train.py --epochs 20 --batch-size 32
+python predict.py --model model_final.pt --input test_data.csv
+```
+
+---
+
+## 📦 Contenido del proyecto:
 - `train.py`: script de entrenamiento que utiliza PyTorch si está instalado; si no, usa scikit-learn (MLP) como fallback. Dataset por defecto: `digits` de scikit-learn (pequeño y sin descargas).
 - `requirements.txt`: dependencias mínimas.
 - `predict.py`: script de inferencia para modelos guardados (PyTorch `.pt` o sklearn `.joblib/.pkl`).
