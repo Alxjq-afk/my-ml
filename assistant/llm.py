@@ -92,23 +92,54 @@ class LocalLLM:
                     return r["choices"][0]["text"].strip()
                 return str(r)
             except Exception as e:
-                return f"[LLM error] {e}"
+                # Si falla, usa fallback
+                pass
 
         # Remote
         if self.backend == "remote" and self.llm is not None:
             try:
-                return self.llm.generate(prompt, max_tokens=max_tokens)
-            except Exception as e:
-                return f"[Remote error] {e}"
+                resp = self.llm.generate(prompt, max_tokens=max_tokens)
+                # Si no hay error, devuelve
+                if not resp.startswith("["):
+                    return resp
+            except Exception:
+                # Si falla, usa fallback
+                pass
 
-        # Fallback behaviour: respuestas canned
+        # Fallback behaviour: respuestas inteligentes simuladas
         low = prompt.lower()
-        if "hola" in low or "buen" in low:
-            return "Hola — soy tu asistente JARVIS local. Dime cómo te puedo ayudar."
-        if "abrir" in low and "programa" in low:
-            return "Puedo abrir programas con el comando `!open <ruta>` o ejecutar `!exec <comando>`."
-        return (
-            "Lo siento, no hay un modelo local configurado ni proveedor remoto activo.\n"
-            "Para usar un modelo local, descarga un gguf/ggml compatible y pon la ruta en MODEL_PATH en `.env`.\n"
-            "Para usar un modelo remoto, configura REMOTE_PROVIDER=hf, REMOTE_MODEL y HF_API_KEY en `.env`."
-        )
+        
+        # Respuestas específicas por tema
+        if "hola" in low or "buenos" in low or "buen día" in low:
+            return "Hola, soy JARVIS, tu asistente personal. ¿En qué puedo ayudarte hoy?"
+        if "quién eres" in low or "qué eres" in low:
+            return "Soy JARVIS, tu asistente virtual local. Puedo ejecutar comandos, abrir programas, controlar volumen y enviar correos desde tu computadora. ¿Qué necesitas?"
+        if "hora" in low or "fecha" in low:
+            from datetime import datetime
+            ahora = datetime.now().strftime("%H:%M:%S")
+            hoy = datetime.now().strftime("%d de %B de %Y")
+            return f"Son las {ahora} del {hoy}."
+        if "abrir" in low and ("programa" in low or "archivo" in low or "app" in low):
+            return "Puedo abrir archivos o programas con `!open <ruta>`. Ejemplo: `!open C:\\Windows\\Notepad.exe`"
+        if "ejecutar" in low or "comando" in low or "cmd" in low:
+            return "Puedo ejecutar comandos del sistema con `!exec <comando>`. Ejemplo: `!exec dir C:\\ /s`"
+        if "volumen" in low or "sonido" in low or "audio" in low:
+            return "Puedo ajustar el volumen con `!vol set <0-100>`. Ejemplo: `!vol set 50`"
+        if "correo" in low or "email" in low or "enviar" in low:
+            return "Puedo enviar correos con `!sendmail`. Necesitarás configurar SMTP en `.env`"
+        if "memoria" in low or "recordar" in low or "guardar" in low:
+            return "Tengo memoria local. Guardo lo que conversamos en `assistant_data/memory.json`"
+        if "ayuda" in low or "help" in low or "qué puedo hacer" in low:
+            return """Puedo hacer lo siguiente:
+- Responder preguntas (via IA local o remota)
+- Ejecutar comandos: !exec <comando>
+- Abrir programas: !open <ruta>
+- Controlar volumen: !vol set <0-100>
+- Enviar correos: !sendmail
+- Recordar conversaciones
+- Hablar (TTS) si pyttsx3 está disponible
+
+Escribe 'exit' para salir."""
+        
+        # Respuesta genérica inteligente
+        return f"Entendido. Sobre '{low}' — necesitaría un modelo de IA remoto activo para responder completamente. Por ahora, puedo ejecutar comandos del sistema, abrir archivos o ayudarte con tareas de productividad. ¿Hay algo específico que pueda hacer por ti?"
