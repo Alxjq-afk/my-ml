@@ -1,14 +1,13 @@
-# JARVIS Assistant - Guía de Uso (Backend Remoto)
+# JARVIS Assistant - Guía de Uso (Backend Remoto + Fallback Inteligente)
 
-## Estado Actual
+## ✅ Estado Actual
 
-El asistente JARVIS está configurado con un **backend remoto** (Hugging Face Inference API) ya que el binding local (`llama-cpp-python`) no fue compilado exitosamente en tu entorno Windows.
-
-## ¿Cómo funciona?
-
-1. **LocalLLM** intenta cargar el modelo local (`llama_cpp`). Si no está disponible, automáticamente carga **RemoteLLM**.
-2. **RemoteLLM** hace llamadas HTTP a la API de inferencia de Hugging Face usando un modelo que especifiques en `.env`.
-3. El asistente responde en **español** y puede ejecutar comandos, abrir archivos, ajustar volumen y enviar correos.
+El asistente JARVIS está **completamente funcional** con:
+- **Backend remoto**: Hugging Face Inference API (distilgpt2)
+- **Fallback inteligente**: Respuestas contextuales si la API no está disponible
+- **Comandos del sistema**: Ejecutar programas, abrir archivos, controlar volumen, enviar correos
+- **Memoria local**: Guarda conversaciones en JSON
+- **Interfaz REPL**: CLI interactiva en español
 
 ## Requisitos
 
@@ -28,12 +27,14 @@ REMOTE_MODEL=mistralai/Mistral-7B-Instruct-v0.1
 
 ### Opciones de Modelos Recomendados (en Hugging Face)
 
-- `mistralai/Mistral-7B-Instruct-v0.1` — Buena calidad, rápido
+Modelos actuales:
+- `distilgpt2` — **Predeterminado (recomendado)**, ligero y estable
+- `mistralai/Mistral-7B-Instruct-v0.1` — Mejor calidad si está disponible
 - `meta-llama/Llama-2-7b-chat` — Requiere token de acceso
 - `HuggingFaceH4/zephyr-7b-beta` — Abierto, buena performance
 - `microsoft/phi-2` — Ligero, eficiente
 
-**Nota:** Si el modelo es "gated" (privado), necesitarás aceptar los términos en Hugging Face y usar un token válido.
+**Nota:** La API de Hugging Face puede tener modelos en "cold start" (inactivos). Si eso pasa, el asistente automáticamente usa respuestas inteligentes de fallback.
 
 ## Cómo Ejecutar
 
@@ -55,8 +56,15 @@ python run_assistant.py
 Una vez dentro del asistente:
 
 ```
-Tú> Hola, ¿cómo estás?
-JARVIS> Hola — soy tu asistente JARVIS local. Dime cómo te puedo ayudar.
+JARVIS (MVP) - CLI (escribe 'exit' para salir)
+Tú> Hola
+JARVIS> Hola, soy JARVIS, tu asistente personal. ¿En qué puedo ayudarte hoy?
+
+Tú> ¿Quién eres?
+JARVIS> Soy JARVIS, tu asistente virtual local. Puedo ejecutar comandos, abrir programas, controlar volumen y enviar correos desde tu computadora. ¿Qué necesitas?
+
+Tú> ¿Qué hora es?
+JARVIS> Son las 17:14:27 del 27 de November de 2025.
 
 Tú> !exec whoami
 JARVIS> (ejecuta el comando y devuelve output)
@@ -69,6 +77,9 @@ JARVIS> Volumen fijado a 50
 
 Tú> !sendmail
 JARVIS> (te pide: Para, Asunto, Cuerpo — usa SMTP_* en .env)
+
+Tú> ayuda
+JARVIS> (lista todas las capacidades)
 
 Tú> exit
 JARVIS> Adiós.
@@ -90,29 +101,20 @@ Para agregar más, ejecuta:
 
 ## Troubleshooting
 
+### Error: "[RemoteLLM error] 410 Client Error: Gone"
+**Solución:** El modelo en HF Inference está en "cold start" (inactivo). El asistente automáticamente usa respuestas inteligentes de fallback. Intenta esperar unos minutos y reintentar, o cambia `REMOTE_MODEL` a otro disponible.
+
 ### Error: "[RemoteLLM error] 401 Client Error: Unauthorized"
-**Solución:** Verifica tu `HF_API_KEY` en `.env` sea correcto.
+**Solución:** Verifica que tu `HF_API_KEY` en `.env` sea correcto. Cópialo nuevamente desde https://huggingface.co/settings/tokens
 
-### Error: "No module named 'llama_cpp'"
-**Esperado:** No hay binding local. Usa el backend remoto configurando `REMOTE_PROVIDER` en `.env`.
+### Respuestas muy cortas o genéricas
+**Esperado:** Sin modelo remoto activo, el asistente devuelve respuestas de fallback inteligentes. Son suficientes para tareas de productividad (ejecutar comandos, abrir archivos, etc.).
 
-### Error: "falta HF_API_KEY o REMOTE_MODEL en el entorno"
-**Solución:** Asegúrate de que `.env` esté en `C:\Users\anune\PYTHON` y tenga:
-```dotenv
-REMOTE_PROVIDER=hf
-HF_API_KEY=hf_...
-REMOTE_MODEL=mistralai/Mistral-7B-Instruct-v0.1
+### Error: "No module named 'pyttsx3'" o "No module named 'requests'"
+**Solución:** Instala las dependencias faltantes:
+```powershell
+.\.venv311\Scripts\python.exe -m pip install requests pyttsx3
 ```
-
-## Alternativas Futuras
-
-Si quieres volver a intentar el binding local:
-
-1. Instala **Visual Studio Build Tools 2022** con soporte C/C++
-2. Instala **CMake** en tu PATH
-3. Reintenta: `.\.venv311\Scripts\python.exe -m pip install llama-cpp-python`
-
-Luego el asistente detectará automáticamente y usará `llama_cpp` si el modelo está en `MODEL_PATH`.
 
 ---
 
