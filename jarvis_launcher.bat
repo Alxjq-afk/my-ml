@@ -23,6 +23,11 @@ echo ========================================
 echo  JARVIS Advanced v2.0 - Iniciando...
 echo ========================================
 echo.
+echo Palabras clave: "JARVIS" u "Oye JARVIS"
+echo Modo: Hibrido (voz + comando)
+echo.
+echo Di "JARVIS" o "Oye JARVIS" para activar escucha...
+echo.
 
 REM Activar venv y ejecutar
 call .venv311\Scripts\activate.bat

@@ -79,7 +79,7 @@ def main():
     
     if args.mode in ("voice", "hybrid"):
         print("\n🎙️  Modo voz activado")
-        print("Di 'Hey JARVIS' para activar escucha...")
+        print("Di 'JARVIS' u 'Oye JARVIS' para activar escucha...")
         print("(Escribe 'exit' en terminal para salir)\n")
         voice_loop(stt, wake_detector, L, mem, CI, apis, args, voice)
     else:
