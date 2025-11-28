@@ -19,8 +19,11 @@ pyaudio
 scipy
 librosa
 SpeechRecognition
-pocketsphinx
 sounddevice
+vosk
+
+# Text-to-Speech (Premium - Optional)
+# TTS  # Instalar manualmente si quieres Coqui TTS
 
 # System Integration
 pycaw

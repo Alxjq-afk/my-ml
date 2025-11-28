@@ -9,7 +9,6 @@ from pathlib import Path
 from assistant import config, voice
 from assistant.llm import LocalLLM
 from assistant.memory import Memory
-from assistant.stt import WhisperSTT
 from assistant.wake_word import WakeWordDetector
 from assistant.interpreter import CommandInterpreter
 from assistant.apis import IntegratedAPIs
@@ -44,9 +43,21 @@ def main():
     print("💾 Inicializando memoria...")
     mem = Memory()
     
-    # STT (Speech-to-Text)
-    print("🎤 Cargando Whisper STT...")
-    stt = WhisperSTT(model_name=args.stt_model, language="es")
+    # STT (Speech-to-Text): preferir VOSK offline si el modelo está disponible
+    vosk_model_dir = Path('assistant_data') / 'models' / 'vosk-model-small-es-0.22'
+    stt = None
+    if vosk_model_dir.exists():
+        try:
+            from assistant.stt_vosk import VoskSTT
+            print("🎤 Inicializando VOSK STT (offline)...")
+            stt = VoskSTT(model_path=str(vosk_model_dir))
+        except Exception as e:
+            print(f"⚠ No fue posible inicializar VOSK: {e}")
+
+    if stt is None:
+        print("🎤 Cargando Whisper STT... (fallback remoto/local)")
+        from assistant.stt import WhisperSTT
+        stt = WhisperSTT(model_name=args.stt_model, language="es")
     
     # Wake word detector
     print("🔊 Inicializando detección de palabra clave...")

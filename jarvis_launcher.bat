@@ -1,22 +1,18 @@
 @echo off
 REM JARVIS Launcher - Inicia JARVIS como programa
-REM Este archivo debería estar en el escritorio
 
 setlocal enabledelayedexpansion
 
-REM Obtener ruta de este script
-set SCRIPT_DIR=%~dp0
-cd /d "%SCRIPT_DIR%"
-
-REM Ir a la carpeta del proyecto
-cd ..\..
+REM Usar ruta absoluta del proyecto
+set PROJECT_PATH=C:\Users\anune\PYTHON
+cd /d "%PROJECT_PATH%"
 
 REM Verificar que estamos en la carpeta correcta
-if not exist "assistant\llm.py" (
+if not exist "%PROJECT_PATH%\assistant\llm.py" (
     echo.
-    echo Error: No se encontro la carpeta de JARVIS
-    echo Este acceso directo debe estar en el escritorio
-    echo y el proyecto en C:\Users\anune\PYTHON
+    echo Error: No se encontro el proyecto JARVIS en %PROJECT_PATH%
+    echo.
+    echo Verifica que la carpeta existe y contiene los archivos necesarios
     pause
     exit /b 1
 )

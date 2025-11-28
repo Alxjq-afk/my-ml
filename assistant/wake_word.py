@@ -1,6 +1,5 @@
 """Wake Word Detection - Detectar 'Hey JARVIS' para activar escucha."""
 import speech_recognition as sr
-from pocketsphinx import Decoder, get_modelpath
 import os
 
 
@@ -12,31 +11,32 @@ class WakeWordDetector:
         Inicializar detector.
         
         Args:
-            wake_words: lista de palabras clave ('hey jarvis', 'jarvis', etc.)
+            wake_words: lista de palabras clave ('jarvis', 'oye jarvis')
         """
         self.wake_words = wake_words or [
-            "hey jarvis",
             "jarvis",
-            "oye jarvis",
-            "escucha jarvis"
+            "oye jarvis"
         ]
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
-        
-        # Intentar inicializar PocketSphinx para detección local
+
+        # Intentar inicializar VOSK como detector offline (mejor precisión que pocketsphinx)
+        self.vosk_available = False
         try:
-            modelpath = get_modelpath()
-            self.decoder = Decoder(
-                hmm=os.path.join(modelpath, 'en-us'),
-                lm=os.path.join(modelpath, 'en-us.lm.bin'),
-                dict=os.path.join(modelpath, 'cmudict-en-us.dict')
-            )
-            self.sphinx_available = True
-            print("✓ PocketSphinx disponible para detección local")
-        except Exception as e:
-            print(f"⚠ PocketSphinx no disponible: {e}")
-            print("  Usando Google Speech Recognition como fallback")
-            self.sphinx_available = False
+            from assistant.stt_vosk import VoskSTT
+            vosk_model_dir = os.path.join('assistant_data', 'models', 'vosk-model-small-es-0.22')
+            if os.path.exists(vosk_model_dir):
+                try:
+                    self.vosk = VoskSTT(model_path=vosk_model_dir)
+                    self.vosk_available = True
+                    print("✓ VOSK disponible para detección de palabra clave (offline)")
+                except Exception as e:
+                    print(f"⚠ No se pudo inicializar VOSK para wake word: {e}")
+        except Exception:
+            self.vosk_available = False
+
+        # Si VOSK no está disponible, usaremos SpeechRecognition con Google como fallback
+        self.sphinx_available = False
     
     def detect_wake_word(self, timeout=10, phrase_time_limit=5):
         """
@@ -49,6 +49,21 @@ class WakeWordDetector:
         Returns:
             True si se detectó palabra clave, False si no
         """
+        # Si VOSK está disponible, usarlo para detección offline
+        if getattr(self, 'vosk_available', False):
+            try:
+                text = self.vosk.listen_and_transcribe(duration=phrase_time_limit)
+                text_lower = (text or "").lower()
+                print(f"📝 (VOSK) Detectado: '{text}'")
+                for wake_word in self.wake_words:
+                    if wake_word in text_lower:
+                        print(f"✓ Palabra clave encontrada: '{wake_word}' (VOSK)")
+                        return True
+                return False
+            except Exception as e:
+                print(f"⚠ Error VOSK durante wake-word: {e}")
+                # continuar al fallback
+
         try:
             with self.microphone as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
@@ -96,7 +111,7 @@ class WakeWordDetector:
         Returns:
             True si se detectó palabra clave
         """
-        print("🔊 Iniciando escucha continua... (di 'Hey JARVIS' o similar)")
+        print("🔊 Iniciando escucha continua... (di 'JARVIS' u 'Oye JARVIS')")
         import time
         start_time = time.time()
         
@@ -116,7 +131,7 @@ if __name__ == "__main__":
     print("=== Test de Wake Word Detection ===\n")
     
     detector = WakeWordDetector()
-    print("\nDi 'Hey JARVIS' en los próximos 10 segundos...")
+    print("\nDi 'JARVIS' u 'Oye JARVIS' en los próximos 10 segundos...")
     detected = detector.detect_wake_word(timeout=10, phrase_time_limit=5)
     
     if detected:

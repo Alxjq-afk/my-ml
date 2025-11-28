@@ -14,6 +14,26 @@ def _ensure():
         MEMORY_FILE.write_text(json.dumps({"memories": []}, indent=2, ensure_ascii=False))
 
 
+class Memory:
+    """Clase para gestionar la memoria de JARVIS."""
+    
+    def __init__(self):
+        """Inicializar memoria."""
+        _ensure()
+    
+    def add(self, role: str, text: str):
+        """Agregar entrada a memoria."""
+        add_memory(role, text)
+    
+    def list(self, limit: int = 50):
+        """Listar memorias."""
+        return list_memories(limit)
+    
+    def clear(self):
+        """Limpiar memoria."""
+        clear_memories()
+
+
 def add_memory(role: str, text: str):
     _ensure()
     data = json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
