@@ -1,22 +1,41 @@
-"""Wake Word Detection - Detectar 'Hey JARVIS' para activar escucha."""
+"""Wake Word Detection - Detectar 'JARVIS' para activar escucha."""
 import speech_recognition as sr
 import os
+from difflib import SequenceMatcher
+
+
+def _is_similar(a, b, threshold=0.75):
+    """
+    Comparar similitud entre dos strings (fuzzy matching).
+    
+    Args:
+        a, b: strings a comparar
+        threshold: similitud mínima (0-1)
+    
+    Returns:
+        True si son similares
+    """
+    ratio = SequenceMatcher(None, a.lower(), b.lower()).ratio()
+    return ratio >= threshold
 
 
 class WakeWordDetector:
     """Detector de palabras clave para activar JARVIS."""
     
-    def __init__(self, wake_words=None):
+    def __init__(self, wake_words=None, similarity_threshold=0.70):
         """
         Inicializar detector.
         
         Args:
             wake_words: lista de palabras clave ('jarvis', 'oye jarvis')
+            similarity_threshold: umbral de similitud para fuzzy matching (0-1)
         """
         self.wake_words = wake_words or [
             "jarvis",
-            "oye jarvis"
+            "oye jarvis",
+            "hey jarvis"  # Aceptar también "hey jarvis" por compatibilidad
         ]
+        self.similarity_threshold = similarity_threshold
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
 
@@ -38,6 +57,38 @@ class WakeWordDetector:
         # Si VOSK no está disponible, usaremos SpeechRecognition con Google como fallback
         self.sphinx_available = False
     
+    def _contains_wake_word(self, text):
+        """
+        Verificar si el texto contiene alguna palabra clave.
+        Usa búsqueda exacta primero, luego fuzzy matching.
+        
+        Args:
+            text: texto a analizar
+        
+        Returns:
+            (True, palabra_clave) si se encontró, (False, None) si no
+        """
+        if not text:
+            return False, None
+        
+        text_lower = text.lower().strip()
+        
+        # Búsqueda exacta (rápida)
+        for wake_word in self.wake_words:
+            if wake_word in text_lower:
+                return True, wake_word
+        
+        # Búsqueda fuzzy (tolera pequeños errores)
+        for wake_word in self.wake_words:
+            if _is_similar(text_lower, wake_word, self.similarity_threshold):
+                return True, wake_word
+            # Comprobar si la palabra clave está contenida en el texto
+            for word in text_lower.split():
+                if _is_similar(word, wake_word, self.similarity_threshold):
+                    return True, wake_word
+        
+        return False, None
+    
     def detect_wake_word(self, timeout=10, phrase_time_limit=5):
         """
         Detectar palabra clave del micrófono.
@@ -55,11 +106,14 @@ class WakeWordDetector:
                 text = self.vosk.listen_and_transcribe(duration=phrase_time_limit)
                 text_lower = (text or "").lower()
                 print(f"📝 (VOSK) Detectado: '{text}'")
-                for wake_word in self.wake_words:
-                    if wake_word in text_lower:
-                        print(f"✓ Palabra clave encontrada: '{wake_word}' (VOSK)")
-                        return True
-                return False
+                
+                found, matched_word = self._contains_wake_word(text)
+                if found:
+                    print(f"✓ Palabra clave encontrada: '{matched_word}' (VOSK)")
+                    return True
+                else:
+                    print(f"⏭ No es palabra clave (esperaba: {self.wake_words})")
+                    return False
             except Exception as e:
                 print(f"⚠ Error VOSK durante wake-word: {e}")
                 # continuar al fallback
@@ -77,17 +131,17 @@ class WakeWordDetector:
             # Intentar con Google Speech Recognition
             try:
                 text = self.recognizer.recognize_google(audio, language="es-ES")
-                text_lower = text.lower()
                 print(f"📝 Detectado: '{text}'")
                 
-                # Comprobar si es una palabra clave
-                for wake_word in self.wake_words:
-                    if wake_word in text_lower:
-                        print(f"✓ Palabra clave encontrada: '{wake_word}'")
-                        return True
-                
-                return False
-            except sr.UnknownValueError:
+                # Comprobar si contiene palabra clave (con fuzzy matching)
+                found, matched_word = self._contains_wake_word(text)
+                if found:
+                    print(f"✓ Palabra clave encontrada: '{matched_word}'")
+                    return True
+                else:
+                    print(f"⏭ No es palabra clave (esperaba: {self.wake_words})")
+                    return False
+            except sr.UnknownValueValue:
                 print("⚠ No se pudo entender el audio")
                 return False
             except sr.RequestError as e:
@@ -128,7 +182,7 @@ class WakeWordDetector:
 
 # Test rápido
 if __name__ == "__main__":
-    print("=== Test de Wake Word Detection ===\n")
+    print("=== Test de Wake Word Detection (Mejorado) ===\n")
     
     detector = WakeWordDetector()
     print("\nDi 'JARVIS' u 'Oye JARVIS' en los próximos 10 segundos...")
@@ -138,3 +192,4 @@ if __name__ == "__main__":
         print("✓ Palabra clave detectada correctamente")
     else:
         print("✗ No se detectó palabra clave")
+
